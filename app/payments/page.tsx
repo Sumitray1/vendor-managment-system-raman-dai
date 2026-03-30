@@ -9,6 +9,7 @@ import {
   type Payment,
   type Vendor,
 } from "@/data/mockData";
+import SkeletonTable from "@/components/ui/skeleton-table";
 
 const methods: Payment["method"][] = [
   "Cash",
@@ -115,29 +116,22 @@ export default function Payments() {
         </button>
       </div>
       <div className="card-pharmacy overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr>
-                {["Date", "Vendor", "Amount", "Method", "Notes"].map((h) => (
-                  <th key={h} className="table-header-cell text-left">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+        {loading ? (
+          <SkeletonTable columns={5} rows={6} />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
                 <tr>
-                  <td
-                    colSpan={5}
-                    className="table-body-cell text-center text-muted-foreground py-10"
-                  >
-                    Loading payments...
-                  </td>
+                  {["Date", "Vendor", "Amount", "Method", "Notes"].map((h) => (
+                    <th key={h} className="table-header-cell text-left">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ) : (
-                list.map((p) => (
+              </thead>
+              <tbody>
+                {list.map((p) => (
                   <tr key={p.id} className="table-row-hover">
                     <td className="table-body-cell whitespace-nowrap">
                       {p.date}
@@ -155,11 +149,11 @@ export default function Payments() {
                       {p.notes}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>

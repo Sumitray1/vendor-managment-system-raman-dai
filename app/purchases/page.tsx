@@ -9,6 +9,7 @@ import {
   type Purchase,
   type Vendor,
 } from "@/data/mockData";
+import SkeletonTable from "@/components/ui/skeleton-table";
 
 export default function Purchases() {
   const [list, setList] = useState<Purchase[]>(initialPurchases);
@@ -40,7 +41,8 @@ export default function Purchases() {
 
         if (purchasesRes.ok) {
           const purchasesData = (await purchasesRes.json()) as Purchase[];
-          if (!cancelled && Array.isArray(purchasesData)) setList(purchasesData);
+          if (!cancelled && Array.isArray(purchasesData))
+            setList(purchasesData);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -119,31 +121,24 @@ export default function Purchases() {
         </button>
       </div>
       <div className="card-pharmacy overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr>
-                {["Date", "Vendor", "Bill #", "Amount", "Type", "Notes"].map(
-                  (h) => (
-                    <th key={h} className="table-header-cell text-left">
-                      {h}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+        {loading ? (
+          <SkeletonTable columns={6} rows={6} />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="table-body-cell text-center text-muted-foreground py-10"
-                  >
-                    Loading purchases...
-                  </td>
+                  {["Date", "Vendor", "Bill #", "Amount", "Type", "Notes"].map(
+                    (h) => (
+                      <th key={h} className="table-header-cell text-left">
+                        {h}
+                      </th>
+                    ),
+                  )}
                 </tr>
-              ) : (
-                list.map((p) => (
+              </thead>
+              <tbody>
+                {list.map((p) => (
                   <tr key={p.id} className="table-row-hover">
                     <td className="table-body-cell whitespace-nowrap">
                       {p.date}
@@ -168,11 +163,11 @@ export default function Purchases() {
                       {p.notes}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>

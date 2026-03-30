@@ -6,6 +6,7 @@ import {
   formatCurrency,
   type Vendor,
 } from "@/data/mockData";
+import SkeletonTable from "@/components/ui/skeleton-table";
 
 export default function VendorLedger() {
   const [vendors, setVendors] = useState<Vendor[]>(initialVendors);
@@ -137,84 +138,83 @@ export default function VendorLedger() {
       )}
 
       <div className="card-pharmacy overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr>
-                {["Date", "Type", "Reference", "Amount", "Running Balance"].map(
-                  (h) => (
+        {ledgerLoading ? (
+          <SkeletonTable columns={5} rows={6} />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  {[
+                    "Date",
+                    "Type",
+                    "Reference",
+                    "Amount",
+                    "Running Balance",
+                  ].map((h) => (
                     <th key={h} className="table-header-cell text-left">
                       {h}
                     </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {ledgerLoading ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="table-body-cell text-center text-muted-foreground py-8"
-                  >
-                    Loading ledger...
-                  </td>
+                  ))}
                 </tr>
-              ) : ledger.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="table-body-cell text-center text-muted-foreground py-8"
-                  >
-                    No records found
-                  </td>
-                </tr>
-              ) : (
-                ledger.map((entry, i) => (
-                  <tr key={i} className="table-row-hover">
-                    <td className="table-body-cell whitespace-nowrap">
-                      {entry.date}
-                    </td>
-                    <td className="table-body-cell">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                          entry.type === "Purchase"
-                            ? "bg-primary/10 text-primary"
-                            : "bg-success/10 text-success"
-                        }`}
-                      >
-                        {entry.type}
-                      </span>
-                    </td>
-                    <td className="table-body-cell">{entry.reference}</td>
+              </thead>
+              <tbody>
+                {ledger.length === 0 ? (
+                  <tr>
                     <td
-                      className="table-body-cell tabular-nums font-medium"
-                      style={{
-                        color:
-                          entry.type === "Payment"
-                            ? "hsl(142, 71%, 45%)"
-                            : undefined,
-                      }}
+                      colSpan={5}
+                      className="table-body-cell text-center text-muted-foreground py-8"
                     >
-                      {entry.type === "Payment" ? "-" : "+"}
-                      {formatCurrency(entry.amount)}
-                    </td>
-                    <td
-                      className="table-body-cell tabular-nums font-semibold"
-                      style={
-                        entry.runningBalance > 0
-                          ? { color: "hsl(0, 84%, 60%)" }
-                          : {}
-                      }
-                    >
-                      {formatCurrency(entry.runningBalance)}
+                      No records found
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  ledger.map((entry, i) => (
+                    <tr key={i} className="table-row-hover">
+                      <td className="table-body-cell whitespace-nowrap">
+                        {entry.date}
+                      </td>
+                      <td className="table-body-cell">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                            entry.type === "Purchase"
+                              ? "bg-primary/10 text-primary"
+                              : "bg-success/10 text-success"
+                          }`}
+                        >
+                          {entry.type}
+                        </span>
+                      </td>
+                      <td className="table-body-cell">{entry.reference}</td>
+                      <td
+                        className="table-body-cell tabular-nums font-medium"
+                        style={{
+                          color:
+                            entry.type === "Payment"
+                              ? "hsl(142, 71%, 45%)"
+                              : undefined,
+                        }}
+                      >
+                        {entry.type === "Payment" ? "-" : "+"}
+                        {formatCurrency(entry.amount)}
+                      </td>
+                      <td
+                        className="table-body-cell tabular-nums font-semibold"
+                        style={
+                          entry.runningBalance > 0
+                            ? { color: "hsl(0, 84%, 60%)" }
+                            : {}
+                        }
+                      >
+                        {formatCurrency(entry.runningBalance)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

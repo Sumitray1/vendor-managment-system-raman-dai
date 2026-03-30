@@ -1,17 +1,26 @@
 "use client";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Eye, Pencil } from "lucide-react";
-import {
-  vendors as initialVendors,
-  formatCurrency,
-  type Vendor,
-  getVendorLedger,
-} from "@/data/mockData";
+import { Plus, X, Eye, Pencil, Users } from "lucide-react";
+import { formatCurrency } from "@/data/mockData";
+import { useToast } from "@/components/ui/use-toast";
+import SkeletonTable from "@/components/ui/skeleton-table";
+
+type Vendor = {
+  id: number;
+  name: string;
+  phone: string;
+  address: string;
+  panNumber: string;
+  totalPurchase: number;
+  totalPaid: number;
+  balance: number;
+};
 
 export default function Vendors() {
-  const [vendorList, setVendorList] = useState<Vendor[]>(initialVendors);
+  const [vendorList, setVendorList] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -21,6 +30,7 @@ export default function Vendors() {
     address: "",
     panNumber: "",
   });
+  const { toast } = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -42,34 +52,32 @@ export default function Vendors() {
 
   const handleAdd = async () => {
     if (!form.name) return;
+    setSubmitting(true);
     try {
       const res = await fetch("/api/vendors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
-      });
-      if (res.ok) {
+      }).catch(() => null);
+      if (res && res.ok) {
         const created = (await res.json()) as Vendor;
         setVendorList((prev) => [created, ...prev]);
         setForm({ name: "", phone: "", address: "", panNumber: "" });
         setModalOpen(false);
-        return;
+        toast({
+          title: "Vendor created",
+          description: `${created.name} has been added.`,
+        });
+      } else {
+        toast({
+          title: "Failed to create vendor",
+          description: "Please try again.",
+          variant: "destructive",
+        });
       }
-    } catch {}
-
-    const fallback: Vendor = {
-      id: Date.now(),
-      name: form.name,
-      phone: form.phone,
-      address: form.address,
-      panNumber: form.panNumber,
-      totalPurchase: 0,
-      totalPaid: 0,
-      balance: 0,
-    };
-    setVendorList((prev) => [fallback, ...prev]);
-    setForm({ name: "", phone: "", address: "", panNumber: "" });
-    setModalOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -84,37 +92,51 @@ export default function Vendors() {
       </div>
 
       <div className="card-pharmacy overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr>
-                {[
-                  "Vendor Name",
-                  "Phone",
-                  "Address",
-                  "Total Purchase",
-                  "Total Paid",
-                  "Balance",
-                  "Actions",
-                ].map((h) => (
-                  <th key={h} className="table-header-cell text-left">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+        {loading ? (
+          <SkeletonTable columns={7} rows={6} />
+        ) : vendorList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div
+              className="mb-3 h-10 w-10 rounded-full flex items-center justify-center"
+              style={{
+                background: "hsl(214, 32%, 91%)",
+                color: "hsl(221, 83%, 53%)",
+              }}
+            >
+              <Users size={18} />
+            </div>
+            <p className="text-sm font-medium text-foreground">
+              No vendors yet
+            </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Add your first vendor to get started.
+            </p>
+            <button className="btn-primary" onClick={() => setModalOpen(true)}>
+              <Plus size={16} /> Add Vendor
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="table-body-cell text-center text-muted-foreground py-10"
-                  >
-                    Loading vendors...
-                  </td>
+                  {[
+                    "Vendor Name",
+                    "Phone",
+                    "Address",
+                    "Total Purchase",
+                    "Total Paid",
+                    "Balance",
+                    "Actions",
+                  ].map((h) => (
+                    <th key={h} className="table-header-cell text-left">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ) : (
-                vendorList.map((v) => (
+              </thead>
+              <tbody>
+                {vendorList.map((v) => (
                   <tr key={v.id} className="table-row-hover">
                     <td className="table-body-cell font-medium">{v.name}</td>
                     <td className="table-body-cell">{v.phone}</td>
@@ -148,11 +170,11 @@ export default function Vendors() {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -202,6 +224,7 @@ export default function Vendors() {
                     <input
                       className="input-field"
                       placeholder={f.placeholder}
+                      disabled={submitting}
                       value={form[f.key as keyof typeof form]}
                       onChange={(e) =>
                         setForm({ ...form, [f.key]: e.target.value })
@@ -213,12 +236,26 @@ export default function Vendors() {
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   className="btn-outline"
+                  disabled={submitting}
                   onClick={() => setModalOpen(false)}
                 >
                   Cancel
                 </button>
-                <button className="btn-primary" onClick={handleAdd}>
-                  Add Vendor
+                <button
+                  className="btn-primary"
+                  onClick={handleAdd}
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+                      Saving…
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={16} /> Add Vendor
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>
@@ -261,20 +298,17 @@ function ViewVendorModal({
     if (!open || !vendor) return;
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch(`/api/vendors/${vendor.id}/ledger`, {
-          cache: "no-store",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (!cancelled && Array.isArray(data)) {
-            setLedger(data);
-            return;
-          }
+      const res = await fetch(`/api/vendors/${vendor.id}/ledger`, {
+        cache: "no-store",
+      }).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data)) {
+          setLedger(data);
         }
-      } catch {}
-
-      if (!cancelled) setLedger(getVendorLedger(vendor.id));
+      } else {
+        if (!cancelled) setLedger([]);
+      }
     })();
 
     return () => {
