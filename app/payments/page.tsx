@@ -10,6 +10,7 @@ import {
   type Vendor,
 } from "@/data/mockData";
 import SkeletonTable from "@/components/ui/skeleton-table";
+import { useToast } from "@/components/ui/use-toast";
 
 const methods: Payment["method"][] = [
   "Cash",
@@ -19,9 +20,11 @@ const methods: Payment["method"][] = [
 ];
 
 export default function Payments() {
+  const { toast } = useToast();
   const [list, setList] = useState<Payment[]>(initialPayments);
   const [vendors, setVendors] = useState<Vendor[]>(initialVendors);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
     vendorId: "",
@@ -40,6 +43,14 @@ export default function Payments() {
           fetch("/api/payments", { cache: "no-store" }),
         ]);
 
+        if (!vendorsRes.ok || !paymentsRes.ok) {
+          toast({
+            title: "Failed to load payments",
+            description: "Some data could not be loaded from the server.",
+            variant: "destructive",
+          });
+        }
+
         if (vendorsRes.ok) {
           const vendorsData = (await vendorsRes.json()) as Vendor[];
           if (!cancelled && Array.isArray(vendorsData)) setVendors(vendorsData);
@@ -57,10 +68,24 @@ export default function Payments() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [toast]);
 
   const handleAdd = async () => {
-    if (!form.vendorId || !form.amount) return;
+    if (!form.vendorId || !form.amount || !form.date) {
+      toast({
+        title: "Missing fields",
+        description: "Please select vendor, date and enter amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    toast({
+      title: "Saving payment...",
+      description: "Please wait.",
+      variant: "info",
+    });
     const vendor = vendors.find((v) => v.id === Number(form.vendorId));
 
     try {
@@ -87,9 +112,27 @@ export default function Payments() {
           notes: "",
         });
         setModalOpen(false);
+        toast({
+          title: "Payment saved",
+          description: `${created.vendorName} • ${formatCurrency(created.amount)}`,
+          variant: "success",
+        });
         return;
       }
-    } catch {}
+      toast({
+        title: "Failed to save payment",
+        description: "Server rejected the request.",
+        variant: "destructive",
+      });
+    } catch {
+      toast({
+        title: "Failed to save payment",
+        description: "Network error. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
 
     const fallback: Payment = {
       id: Date.now(),
@@ -103,6 +146,11 @@ export default function Payments() {
     setList((prev) => [fallback, ...prev]);
     setForm({ vendorId: "", date: "", amount: "", method: "Cash", notes: "" });
     setModalOpen(false);
+    toast({
+      title: "Saved locally only",
+      description: "Payment was added locally because server save failed.",
+      variant: "destructive",
+    });
   };
 
   return (
@@ -267,11 +315,26 @@ export default function Payments() {
                 <button
                   className="btn-outline"
                   onClick={() => setModalOpen(false)}
+                  disabled={submitting}
                 >
                   Cancel
                 </button>
-                <button className="btn-primary" onClick={handleAdd}>
-                  Record Payment
+                <button
+                  className="btn-primary"
+                  onClick={handleAdd}
+                  disabled={submitting}
+                  style={
+                    submitting ? { opacity: 0.8, cursor: "not-allowed" } : {}
+                  }
+                >
+                  {submitting ? (
+                    <>
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Record Payment"
+                  )}
                 </button>
               </div>
             </motion.div>

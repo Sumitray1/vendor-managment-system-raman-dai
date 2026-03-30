@@ -87,28 +87,36 @@ export default function VendorLedger() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Vendor Ledger
-        </h1>
-        <select
-          className="input-field w-auto min-w-[240px]"
-          value={selectedVendorId}
-          onChange={(e) => setSelectedVendorId(Number(e.target.value))}
-          disabled={vendorsLoading || vendors.length === 0}
-        >
-          {vendors.length === 0 ? (
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Vendor Ledger
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            View purchases, payments, and running balance by vendor.
+          </p>
+        </div>
+
+        <div className="w-full sm:w-auto">
+          <label className="block text-sm font-medium text-foreground mb-1.5">
+            Vendor
+          </label>
+          <select
+            className="input-field w-full sm:w-auto sm:min-w-[280px]"
+            value={vendors.length === 0 ? "" : selectedVendorId}
+            onChange={(e) => setSelectedVendorId(Number(e.target.value))}
+            disabled={vendorsLoading || vendors.length === 0}
+          >
             <option value="" disabled>
-              No vendors
+              {vendorsLoading ? "Loading vendors..." : "Select vendor"}
             </option>
-          ) : (
-            vendors.map((v) => (
+            {vendors.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.name}
               </option>
-            ))
-          )}
-        </select>
+            ))}
+          </select>
+        </div>
       </div>
 
       {vendor && (

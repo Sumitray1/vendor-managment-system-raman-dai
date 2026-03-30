@@ -37,7 +37,14 @@ export default function Vendors() {
     (async () => {
       try {
         const res = await fetch("/api/vendors", { cache: "no-store" });
-        if (!res.ok) return;
+        if (!res.ok) {
+          toast({
+            title: "Failed to load vendors",
+            description: "Please refresh and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
         const data = (await res.json()) as Vendor[];
         if (!cancelled && Array.isArray(data)) setVendorList(data);
       } finally {
@@ -51,7 +58,14 @@ export default function Vendors() {
   }, []);
 
   const handleAdd = async () => {
-    if (!form.name) return;
+    if (!form.name) {
+      toast({
+        title: "Missing vendor name",
+        description: "Please enter vendor name.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch("/api/vendors", {
@@ -67,6 +81,7 @@ export default function Vendors() {
         toast({
           title: "Vendor created",
           description: `${created.name} has been added.`,
+          variant: "success",
         });
       } else {
         toast({
