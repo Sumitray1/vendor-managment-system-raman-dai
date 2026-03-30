@@ -1,6 +1,22 @@
-import { sql } from "@vercel/postgres";
+import { neon } from "@neondatabase/serverless";
 
 let schemaEnsured: Promise<void> | null = null;
+
+let neonSql: ReturnType<typeof neon> | null = null;
+
+function getNeonSql() {
+  if (neonSql) return neonSql;
+
+  const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error(
+      "Missing POSTGRES_URL (or DATABASE_URL) environment variable.",
+    );
+  }
+
+  neonSql = neon(connectionString);
+  return neonSql;
+}
 
 export function ensureSchema() {
   if (!schemaEnsured) {
@@ -46,4 +62,12 @@ export function ensureSchema() {
   return schemaEnsured;
 }
 
-export { sql };
+export async function sql(
+  strings: TemplateStringsArray,
+  ...values: Array<unknown>
+) {
+  const rows = (await getNeonSql()(strings, ...values)) as Array<
+    Record<string, unknown>
+  >;
+  return { rows };
+}
