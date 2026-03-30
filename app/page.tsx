@@ -1,65 +1,204 @@
-import Image from "next/image";
+"use client";
+import { motion } from "framer-motion";
+import { Users, ShoppingCart, CreditCard, AlertTriangle } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  vendors,
+  purchases,
+  payments,
+  monthlyData,
+  formatCurrency,
+} from "@/data/mockData";
 
-export default function Home() {
+const stats = [
+  {
+    label: "Total Vendors",
+    value: vendors.length.toString(),
+    icon: Users,
+    color: "hsl(221, 83%, 53%)",
+  },
+  {
+    label: "Total Purchases",
+    value: formatCurrency(vendors.reduce((s, v) => s + v.totalPurchase, 0)),
+    icon: ShoppingCart,
+    color: "hsl(221, 83%, 53%)",
+  },
+  {
+    label: "Total Payments",
+    value: formatCurrency(vendors.reduce((s, v) => s + v.totalPaid, 0)),
+    icon: CreditCard,
+    color: "hsl(142, 71%, 45%)",
+  },
+  {
+    label: "Outstanding Balance",
+    value: formatCurrency(vendors.reduce((s, v) => s + v.balance, 0)),
+    icon: AlertTriangle,
+    color: "hsl(0, 84%, 60%)",
+    urgent: true,
+  },
+];
+
+export default function Dashboard() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        Dashboard
+      </h1>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05, duration: 0.3 }}
+            className="card-pharmacy p-5"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-muted-foreground">
+                {stat.label}
+              </span>
+              <stat.icon size={18} style={{ color: stat.color }} />
+            </div>
+            <p
+              className="stat-card-value"
+              style={stat.urgent ? { color: "hsl(0, 84%, 60%)" } : {}}
+            >
+              {stat.value}
+            </p>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="card-pharmacy p-5">
+        <h2 className="text-sm font-semibold text-foreground mb-4">
+          Monthly Purchase Trend
+        </h2>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={monthlyData}>
+              <defs>
+                <linearGradient id="purchaseGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor="hsl(221, 83%, 53%)"
+                    stopOpacity={0.2}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="hsl(221, 83%, 53%)"
+                    stopOpacity={0}
+                  />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(214, 32%, 91%)"
+              />
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 12, fill: "hsl(215, 16%, 47%)" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 12, fill: "hsl(215, 16%, 47%)" }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+              />
+              <Tooltip formatter={(v: number) => formatCurrency(v)} />
+              <Area
+                type="monotone"
+                dataKey="purchases"
+                stroke="hsl(221, 83%, 53%)"
+                fill="url(#purchaseGrad)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
-      </main>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="card-pharmacy overflow-hidden">
+          <div className="px-5 py-4 border-b border-border">
+            <h2 className="text-sm font-semibold text-foreground">
+              Recent Purchases
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  {["Date", "Vendor", "Bill #", "Amount"].map((h) => (
+                    <th key={h} className="table-header-cell text-left">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {purchases.slice(0, 5).map((p) => (
+                  <tr key={p.id} className="table-row-hover">
+                    <td className="table-body-cell whitespace-nowrap">
+                      {p.date}
+                    </td>
+                    <td className="table-body-cell">{p.vendorName}</td>
+                    <td className="table-body-cell">{p.billNo}</td>
+                    <td className="table-body-cell tabular-nums font-medium">
+                      {formatCurrency(p.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="card-pharmacy overflow-hidden">
+          <div className="px-5 py-4 border-b border-border">
+            <h2 className="text-sm font-semibold text-foreground">
+              Recent Payments
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  {["Date", "Vendor", "Method", "Amount"].map((h) => (
+                    <th key={h} className="table-header-cell text-left">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {payments.slice(0, 5).map((p) => (
+                  <tr key={p.id} className="table-row-hover">
+                    <td className="table-body-cell whitespace-nowrap">
+                      {p.date}
+                    </td>
+                    <td className="table-body-cell">{p.vendorName}</td>
+                    <td className="table-body-cell">{p.method}</td>
+                    <td className="table-body-cell tabular-nums font-medium text-success">
+                      {formatCurrency(p.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
