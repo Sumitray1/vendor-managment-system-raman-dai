@@ -53,7 +53,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold"
             style={{ background: "hsl(221, 83%, 53%)", color: "white" }}
           >
-          OS
+            OS
           </div>
           <span className="text-base font-semibold text-white tracking-tight">
             PharmaPay
@@ -122,7 +122,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <input
                 type="text"
                 placeholder="Search..."
-                className="input-field pl-9 w-56 text-sm pr-3"
+                className="w-56 rounded-md border border-border bg-card px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               />
             </div>
             <div

@@ -7,8 +7,13 @@ import {
   type Vendor,
 } from "@/data/mockData";
 import SkeletonTable from "@/components/ui/skeleton-table";
+import { useToast } from "@/components/ui/use-toast";
+import { SearchableSelect } from "@/components/ui/select";
+import { Download } from "lucide-react";
+import { downloadXlsx } from "@/lib/utils";
 
 export default function VendorLedger() {
+  const { toast } = useToast();
   const [vendors, setVendors] = useState<Vendor[]>(initialVendors);
   const [selectedVendorId, setSelectedVendorId] = useState(
     initialVendors[0]?.id ?? 0,
@@ -32,15 +37,28 @@ export default function VendorLedger() {
     (async () => {
       try {
         const res = await fetch("/api/vendors", { cache: "no-store" });
-        if (res.ok) {
-          const data = (await res.json()) as Vendor[];
-          if (!cancelled && Array.isArray(data) && data.length > 0) {
-            setVendors(data);
-            setSelectedVendorId((current) =>
-              data.some((v) => v.id === current) ? current : data[0].id,
-            );
-          }
+        if (!res.ok) {
+          toast({
+            title: "Failed to load vendors",
+            description: "Please refresh and try again.",
+            variant: "destructive",
+          });
+          return;
         }
+
+        const data = (await res.json()) as Vendor[];
+        if (!cancelled && Array.isArray(data) && data.length > 0) {
+          setVendors(data);
+          setSelectedVendorId((current) =>
+            data.some((v) => v.id === current) ? current : data[0].id,
+          );
+        }
+      } catch {
+        toast({
+          title: "Failed to load vendors",
+          description: "Network error. Please try again.",
+          variant: "destructive",
+        });
       } finally {
         if (!cancelled) setVendorsLoading(false);
       }
@@ -49,7 +67,7 @@ export default function VendorLedger() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (!selectedVendorId) {
@@ -73,7 +91,18 @@ export default function VendorLedger() {
             return;
           }
         }
-      } catch {}
+        toast({
+          title: "Failed to load ledger",
+          description: "Showing offline data.",
+          variant: "destructive",
+        });
+      } catch {
+        toast({
+          title: "Failed to load ledger",
+          description: "Network error. Showing offline data.",
+          variant: "destructive",
+        });
+      }
 
       if (!cancelled) setLedger(getVendorLedger(selectedVendorId));
     })().finally(() => {
@@ -83,7 +112,37 @@ export default function VendorLedger() {
     return () => {
       cancelled = true;
     };
-  }, [selectedVendorId]);
+  }, [selectedVendorId, toast]);
+
+  const handleExport = async () => {
+    if (!vendor) {
+      toast({
+        title: "Select a vendor",
+        description: "Choose a vendor to export ledger.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const headers = ["Date", "Type", "Reference", "Amount", "Running Balance"];
+    const rows = ledger.map((e) => [
+      e.date,
+      e.type,
+      e.reference,
+      e.amount,
+      e.runningBalance,
+    ]);
+    const safeName = vendor.name.replace(/[\\/:*?"<>|]/g, "-");
+    await downloadXlsx(
+      `vendor-ledger-${safeName}-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      headers,
+      rows,
+    );
+    toast({
+      title: "Exported ledger",
+      description: "An Excel file has been downloaded.",
+      variant: "success",
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -101,21 +160,28 @@ export default function VendorLedger() {
           <label className="block text-sm font-medium text-foreground mb-1.5">
             Vendor
           </label>
-          <select
-            className="input-field w-full sm:w-auto sm:min-w-[280px]"
-            value={vendors.length === 0 ? "" : selectedVendorId}
-            onChange={(e) => setSelectedVendorId(Number(e.target.value))}
+          <SearchableSelect
+            value={vendors.length === 0 ? "" : String(selectedVendorId)}
+            onValueChange={(next) => setSelectedVendorId(Number(next))}
             disabled={vendorsLoading || vendors.length === 0}
-          >
-            <option value="" disabled>
-              {vendorsLoading ? "Loading vendors..." : "Select vendor"}
-            </option>
-            {vendors.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
+            placeholder={
+              vendorsLoading ? "Loading vendors..." : "Select vendor"
+            }
+            className="w-full sm:w-auto sm:min-w-[280px]"
+            options={vendors.map((v) => ({
+              value: String(v.id),
+              label: v.name,
+            }))}
+          />
+          <div className="mt-2 flex justify-end">
+            <button
+              className="btn-outline"
+              onClick={handleExport}
+              disabled={vendorsLoading || ledgerLoading || !vendor}
+            >
+              <Download size={16} /> Export
+            </button>
+          </div>
         </div>
       </div>
 

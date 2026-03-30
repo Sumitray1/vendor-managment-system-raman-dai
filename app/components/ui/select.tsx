@@ -1,8 +1,18 @@
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const Select = SelectPrimitive.Root;
 
@@ -140,4 +150,71 @@ export {
   SelectSeparator,
   SelectScrollUpButton,
   SelectScrollDownButton,
+  SearchableSelect,
 };
+
+type SearchableSelectOption = {
+  value: string;
+  label: string;
+};
+
+function SearchableSelect({
+  value,
+  onValueChange,
+  options,
+  placeholder = "Select...",
+  disabled,
+  className,
+}: {
+  value: string;
+  onValueChange: (next: string) => void;
+  options: SearchableSelectOption[];
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const selected = options.find((o) => o.value === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className={cn("w-full justify-between font-normal", className)}
+        >
+          <span className={cn("truncate", !selected && "text-muted-foreground")}>
+            {selected ? selected.label : placeholder}
+          </span>
+          <ChevronsUpDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search..." />
+          <CommandList>
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((o) => (
+                <CommandItem
+                  key={o.value}
+                  value={o.label}
+                  onSelect={() => {
+                    onValueChange(o.value);
+                    setOpen(false);
+                  }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4", value === o.value ? "opacity-100" : "opacity-0")} />
+                  {o.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
