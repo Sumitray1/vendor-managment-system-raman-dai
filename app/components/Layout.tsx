@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
 import {
   LayoutDashboard,
   Users,
@@ -13,6 +14,8 @@ import {
   Menu,
   X,
   ChevronRight,
+  LogOut,
+  KeyRound,
 } from "lucide-react";
 
 const navItems = [
@@ -27,8 +30,43 @@ const navItems = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
   const currentPage =
     navItems.find((n) => n.to === pathname)?.label || "Dashboard";
+  const isAuthRoute =
+    pathname === "/login" ||
+    pathname === "/forgot-password" ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/register");
+
+  if (isAuthRoute) return <>{children}</>;
+
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("/api/auth/logout", { method: "POST" });
+      if (!res.ok) {
+        toast({
+          title: "Logout failed",
+          description: "Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Logged out",
+        description: "You have been signed out.",
+        variant: "success",
+      });
+      router.push("/login");
+    } catch {
+      toast({
+        title: "Logout failed",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -82,6 +120,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+        <div className="px-3 pb-4">
+          <Link
+            href="/change-password"
+            onClick={() => setSidebarOpen(false)}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150 text-white/50 hover:text-white/80"
+          >
+            <KeyRound size={18} />
+            Change Password
+          </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150 text-white/50 hover:text-white/80"
+          >
+            <LogOut size={18} />
+            Logout
+          </button>
+        </div>
         <div
           className="px-6 py-4 text-xs"
           style={{ color: "hsl(215, 20%, 55%)" }}

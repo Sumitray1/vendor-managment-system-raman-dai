@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import SkeletonTable from "@/components/ui/skeleton-table";
 import { useToast } from "@/components/ui/use-toast";
+import { getVendors } from "@/services/vendor";
 
 type Vendor = {
   id: number;
@@ -67,15 +68,16 @@ export default function Dashboard() {
     let cancelled = false;
     (async () => {
       try {
-        const [vendorsRes, purchasesRes, paymentsRes] = await Promise.all([
-          fetch("/api/vendors", { cache: "no-store" }),
+        const [vendorsResult, purchasesRes, paymentsRes] = await Promise.all([
+          getVendors({ cache: "no-store" })
+            .then((data) => ({ ok: true as const, data }))
+            .catch(() => ({ ok: false as const, data: [] as Vendor[] })),
           fetch("/api/purchases", { cache: "no-store" }),
           fetch("/api/payments", { cache: "no-store" }),
         ]);
 
-        if (vendorsRes.ok) {
-          const data = (await vendorsRes.json()) as Vendor[];
-          if (!cancelled && Array.isArray(data)) setVendors(data);
+        if (!cancelled && vendorsResult.ok && Array.isArray(vendorsResult.data)) {
+          setVendors(vendorsResult.data);
         }
 
         if (purchasesRes.ok) {
@@ -88,7 +90,7 @@ export default function Dashboard() {
           if (!cancelled && Array.isArray(data)) setPayments(data);
         }
 
-        if (!vendorsRes.ok || !purchasesRes.ok || !paymentsRes.ok) {
+        if (!vendorsResult.ok || !purchasesRes.ok || !paymentsRes.ok) {
           toast({
             title: "Dashboard data not available",
             description: "Check your database connection and try again.",
@@ -138,6 +140,7 @@ export default function Dashboard() {
         value: formatCurrency(totalPayments),
         icon: CreditCard,
         color: "hsl(142, 71%, 45%)",
+        urgent: true,
       },
       {
         label: "Outstanding Balance",
@@ -228,7 +231,7 @@ export default function Dashboard() {
                 </div>
                 <p
                   className="stat-card-value"
-                  style={stat.urgent ? { color: "hsl(0, 84%, 60%)" } : {}}
+                  style={stat.urgent ? { color: stat.color } : {}}
                 >
                   {stat.value}
                 </p>
@@ -325,7 +328,10 @@ export default function Dashboard() {
                         </td>
                         <td className="table-body-cell">{p.vendorName}</td>
                         <td className="table-body-cell">{p.billNo}</td>
-                        <td className="table-body-cell tabular-nums font-medium">
+                        <td
+                          className="table-body-cell tabular-nums font-medium"
+                          style={{ color: "hsl(0, 84%, 60%)" }}
+                        >
                           {formatCurrency(p.amount)}
                         </td>
                       </tr>
@@ -375,7 +381,10 @@ export default function Dashboard() {
                         </td>
                         <td className="table-body-cell">{p.vendorName}</td>
                         <td className="table-body-cell">{p.method}</td>
-                        <td className="table-body-cell tabular-nums font-medium text-success">
+                        <td
+                          className="table-body-cell tabular-nums font-medium"
+                          style={{ color: "hsl(142, 71%, 45%)" }}
+                        >
                           {formatCurrency(p.amount)}
                         </td>
                       </tr>

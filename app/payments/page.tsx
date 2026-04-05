@@ -13,10 +13,12 @@ import SkeletonTable from "@/components/ui/skeleton-table";
 import { useToast } from "@/components/ui/use-toast";
 import { SearchableSelect } from "@/components/ui/select";
 import { downloadXlsx } from "@/lib/utils";
+import { getVendors } from "@/services/vendor";
 
 const methods: Payment["method"][] = [
   "Cash",
   "Bank Transfer",
+  "Cheque",
   "eSewa",
   "Khalti",
 ];
@@ -55,12 +57,14 @@ export default function Payments() {
     let cancelled = false;
     (async () => {
       try {
-        const [vendorsRes, paymentsRes] = await Promise.all([
-          fetch("/api/vendors", { cache: "no-store" }),
+        const [vendorsResult, paymentsRes] = await Promise.all([
+          getVendors({ cache: "no-store" })
+            .then((data) => ({ ok: true as const, data }))
+            .catch(() => ({ ok: false as const, data: [] as Vendor[] })),
           fetch("/api/payments", { cache: "no-store" }),
         ]);
 
-        if (!vendorsRes.ok || !paymentsRes.ok) {
+        if (!vendorsResult.ok || !paymentsRes.ok) {
           toast({
             title: "Failed to load payments",
             description: "Some data could not be loaded from the server.",
@@ -68,9 +72,8 @@ export default function Payments() {
           });
         }
 
-        if (vendorsRes.ok) {
-          const vendorsData = (await vendorsRes.json()) as Vendor[];
-          if (!cancelled && Array.isArray(vendorsData)) setVendors(vendorsData);
+        if (!cancelled && vendorsResult.ok && Array.isArray(vendorsResult.data)) {
+          setVendors(vendorsResult.data);
         }
 
         if (paymentsRes.ok) {
@@ -357,7 +360,10 @@ export default function Payments() {
                         {p.date}
                       </td>
                       <td className="table-body-cell">{p.vendorName}</td>
-                      <td className="table-body-cell tabular-nums font-medium text-success">
+                      <td
+                        className="table-body-cell tabular-nums font-medium"
+                        style={{ color: "hsl(142, 71%, 45%)" }}
+                      >
                         {formatCurrency(p.amount)}
                       </td>
                       <td className="table-body-cell">

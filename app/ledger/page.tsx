@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   vendors as initialVendors,
-  getVendorLedger,
+  getVendorLedger as getVendorLedgerOffline,
   formatCurrency,
   type Vendor,
 } from "@/data/mockData";
@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { SearchableSelect } from "@/components/ui/select";
 import { Download } from "lucide-react";
 import { downloadXlsx } from "@/lib/utils";
+import { getVendorLedger as getVendorLedgerApi, getVendors } from "@/services/vendor";
 
 export default function VendorLedger() {
   const { toast } = useToast();
@@ -36,17 +37,7 @@ export default function VendorLedger() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/vendors", { cache: "no-store" });
-        if (!res.ok) {
-          toast({
-            title: "Failed to load vendors",
-            description: "Please refresh and try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        const data = (await res.json()) as Vendor[];
+        const data = await getVendors({ cache: "no-store" });
         if (!cancelled && Array.isArray(data) && data.length > 0) {
           setVendors(data);
           setSelectedVendorId((current) =>
@@ -81,15 +72,10 @@ export default function VendorLedger() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/vendors/${selectedVendorId}/ledger`, {
-          cache: "no-store",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (!cancelled && Array.isArray(data)) {
-            setLedger(data);
-            return;
-          }
+        const data = await getVendorLedgerApi(selectedVendorId, { cache: "no-store" });
+        if (!cancelled && Array.isArray(data)) {
+          setLedger(data);
+          return;
         }
         toast({
           title: "Failed to load ledger",
@@ -104,7 +90,7 @@ export default function VendorLedger() {
         });
       }
 
-      if (!cancelled) setLedger(getVendorLedger(selectedVendorId));
+      if (!cancelled) setLedger(getVendorLedgerOffline(selectedVendorId));
     })().finally(() => {
       if (!cancelled) setLedgerLoading(false);
     });
@@ -195,7 +181,7 @@ export default function VendorLedger() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Total Paid</p>
-            <p className="text-lg font-semibold tabular-nums text-success">
+            <p className="text-lg font-semibold tabular-nums text-green-700">
               {formatCurrency(vendor.totalPaid)}
             </p>
           </div>
@@ -203,7 +189,7 @@ export default function VendorLedger() {
             <p className="text-sm text-muted-foreground">Outstanding Balance</p>
             <p
               className="text-lg font-semibold tabular-nums"
-              style={vendor.balance > 0 ? { color: "hsl(0, 84%, 60%)" } : {}}
+              style={vendor.balance > 0 ? { color: "hsl(0, 84%, 60%)" } : { color: "hsl(142, 71%, 45%)" }}
             >
               {formatCurrency(vendor.balance)}
             </p>
@@ -277,7 +263,7 @@ export default function VendorLedger() {
                         style={
                           entry.runningBalance > 0
                             ? { color: "hsl(0, 84%, 60%)" }
-                            : {}
+                            : { color: "hsl(142, 71%, 45%)" } 
                         }
                       >
                         {formatCurrency(entry.runningBalance)}

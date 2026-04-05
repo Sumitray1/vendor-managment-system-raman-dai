@@ -1,10 +1,29 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 import SkeletonTable from "@/components/ui/skeleton-table";
 import { useToast } from "@/components/ui/use-toast";
+import { getVendors } from "@/services/vendor";
 
-const COLORS = ["hsl(221, 83%, 53%)", "hsl(142, 71%, 45%)", "hsl(38, 92%, 50%)", "hsl(0, 84%, 60%)", "hsl(262, 83%, 58%)"];
+const COLORS = [
+  "hsl(221, 83%, 53%)",
+  "hsl(142, 71%, 45%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(0, 84%, 60%)",
+  "hsl(262, 83%, 58%)",
+];
 
 type Vendor = {
   id: number;
@@ -54,13 +73,15 @@ export default function Reports() {
     let cancelled = false;
     (async () => {
       try {
-        const [vendorsRes, purchasesRes, paymentsRes] = await Promise.all([
-          fetch("/api/vendors", { cache: "no-store" }),
+        const [vendorsResult, purchasesRes, paymentsRes] = await Promise.all([
+          getVendors({ cache: "no-store" })
+            .then((data) => ({ ok: true as const, data }))
+            .catch(() => ({ ok: false as const, data: [] as Vendor[] })),
           fetch("/api/purchases", { cache: "no-store" }),
           fetch("/api/payments", { cache: "no-store" }),
         ]);
 
-        if (!vendorsRes.ok || !purchasesRes.ok || !paymentsRes.ok) {
+        if (!vendorsResult.ok || !purchasesRes.ok || !paymentsRes.ok) {
           toast({
             title: "Failed to load reports",
             description: "Some data could not be loaded from the server.",
@@ -68,9 +89,12 @@ export default function Reports() {
           });
         }
 
-        if (vendorsRes.ok) {
-          const data = (await vendorsRes.json()) as Vendor[];
-          if (!cancelled && Array.isArray(data)) setVendors(data);
+        if (
+          !cancelled &&
+          vendorsResult.ok &&
+          Array.isArray(vendorsResult.data)
+        ) {
+          setVendors(vendorsResult.data);
         }
 
         if (purchasesRes.ok) {
@@ -104,7 +128,9 @@ export default function Reports() {
     const formatter = new Intl.DateTimeFormat("en", { month: "short" });
     const now = new Date();
     const monthStarts = Array.from({ length: 6 }).map((_, i) => {
-      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - i), 1));
+      const d = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - i), 1),
+      );
       return d;
     });
 
@@ -143,11 +169,15 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-foreground">Reports</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        Reports
+      </h1>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="card-pharmacy p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Monthly Purchases vs Payments</h2>
+          <h2 className="text-sm font-semibold text-foreground mb-4">
+            Monthly Purchases vs Payments
+          </h2>
           <div className="h-72">
             {loading ? (
               <div className="h-full flex flex-col justify-center gap-3">
@@ -158,8 +188,16 @@ export default function Reports() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyData} barGap={4}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "hsl(215, 16%, 47%)" }} axisLine={false} tickLine={false} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(214, 32%, 91%)"
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 12, fill: "hsl(215, 16%, 47%)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <YAxis
                     tick={{ fontSize: 12, fill: "hsl(215, 16%, 47%)" }}
                     axisLine={false}
@@ -167,8 +205,18 @@ export default function Reports() {
                     tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
                   />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                  <Bar dataKey="purchases" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} name="Purchases" />
-                  <Bar dataKey="payments" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} name="Payments" />
+                  <Bar
+                    dataKey="purchases"
+                    fill="hsl(221, 83%, 53%)"
+                    radius={[4, 4, 0, 0]}
+                    name="Purchases"
+                  />
+                  <Bar
+                    dataKey="payments"
+                    fill="hsl(142, 71%, 45%)"
+                    radius={[4, 4, 0, 0]}
+                    name="Payments"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -176,7 +224,9 @@ export default function Reports() {
         </div>
 
         <div className="card-pharmacy p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Vendor Outstanding Balance Distribution</h2>
+          <h2 className="text-sm font-semibold text-foreground mb-4">
+            Vendor Outstanding Balance Distribution
+          </h2>
           <div className="h-72">
             {loading ? (
               <div className="h-full flex flex-col justify-center gap-3">
@@ -198,7 +248,9 @@ export default function Reports() {
                     outerRadius={100}
                     paddingAngle={3}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
                   >
                     {vendorDebt.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -215,7 +267,9 @@ export default function Reports() {
 
       <div className="card-pharmacy overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
-          <h2 className="text-sm font-semibold text-foreground">Vendor Balance Summary</h2>
+          <h2 className="text-sm font-semibold text-foreground">
+            Vendor Balance Summary
+          </h2>
         </div>
         {loading ? (
           <SkeletonTable columns={4} rows={6} />
@@ -224,7 +278,12 @@ export default function Reports() {
             <table className="w-full text-sm">
               <thead>
                 <tr>
-                  {["Vendor", "Total Purchase", "Total Paid", "Outstanding"].map((h) => (
+                  {[
+                    "Vendor",
+                    "Total Purchase",
+                    "Total Paid",
+                    "Outstanding",
+                  ].map((h) => (
                     <th key={h} className="table-header-cell text-left">
                       {h}
                     </th>
@@ -234,7 +293,10 @@ export default function Reports() {
               <tbody>
                 {vendors.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="table-body-cell text-center text-muted-foreground py-10">
+                    <td
+                      colSpan={4}
+                      className="table-body-cell text-center text-muted-foreground py-10"
+                    >
                       No vendors yet
                     </td>
                   </tr>
@@ -242,11 +304,25 @@ export default function Reports() {
                   vendors.map((v) => (
                     <tr key={v.id} className="table-row-hover">
                       <td className="table-body-cell font-medium">{v.name}</td>
-                      <td className="table-body-cell tabular-nums">{formatCurrency(v.totalPurchase)}</td>
-                      <td className="table-body-cell tabular-nums text-success">{formatCurrency(v.totalPaid)}</td>
+                      <td
+                        className="table-body-cell tabular-nums "
+                        style={{ color: "hsl(0, 84%, 60%)" }}
+                      >
+                        {formatCurrency(v.totalPurchase)}
+                      </td>
+                      <td
+                        className="table-body-cell tabular-nums "
+                        style={{ color: "hsl(142, 71%, 45%)" }}
+                      >
+                        {formatCurrency(v.totalPaid)}
+                      </td>
                       <td
                         className="table-body-cell tabular-nums font-semibold"
-                        style={v.balance > 0 ? { color: "hsl(0, 84%, 60%)" } : {}}
+                        style={
+                          v.balance > 0
+                            ? { color: "hsl(0, 84%, 60%)" }
+                            : { color: "hsl(142, 71%, 45%)" }
+                        }
                       >
                         {formatCurrency(v.balance)}
                       </td>

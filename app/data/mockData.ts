@@ -26,7 +26,7 @@ export interface Payment {
   vendorName: string;
   date: string;
   amount: number;
-  method: "Cash" | "Bank Transfer" | "eSewa" | "Khalti";
+  method: "Cash" | "Bank Transfer" | "Cheque" | "eSewa" | "Khalti";
   notes: string;
 }
 

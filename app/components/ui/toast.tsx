@@ -27,10 +27,13 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: "border bg-background text-foreground",
-        info: "info group border-primary bg-primary text-primary-foreground",
-        success: "success group border-success bg-success text-success-foreground",
-        destructive: "destructive group border-destructive bg-destructive text-destructive-foreground",
+        default:
+          "border bg-[hsl(var(--background))] text-[hsl(var(--foreground))]",
+        info: "info border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]",
+        success:
+          "success border-[hsl(var(--success))] bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))]",
+        destructive:
+          "destructive border-[hsl(var(--destructive))] bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))]",
       },
     },
     defaultVariants: {
